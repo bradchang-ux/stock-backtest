@@ -111,15 +111,24 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     current_symbol = st.session_state.get('symbol', symbol)
     
     # Display metrics
+    # Display metrics
     st.subheader(f"Backtest Results for {current_symbol}")
-    st.write(f"Ref Date (T): Last trading day of each week.")
-    st.write(f"Lookback Window: [T-8, T-1] (Calendar Days)")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"Ref Date (T): Last trading day of each week.")
+        st.write(f"Lookback Window: [T-8, T-1] (Calendar Days)")
+    with col2:
+        # Calculate Average
+        avg_ratio = results_df['Pullback Ratio'].mean()
+        if pd.isna(avg_ratio):
+            avg_ratio = 0.0
+        st.metric("Average Pullback Ratio", f"{avg_ratio:.2%}")
     
     # Plotly Chart
     fig = px.line(results_df, x='Week Ending', y='Pullback Ratio', markers=True, title='Pullback Ratio Over Time')
     
     # Add Average Line
-    avg_ratio = results_df['Pullback Ratio'].mean()
     fig.add_hline(y=avg_ratio, line_dash="dash", line_color="red", annotation_text=f"Avg: {avg_ratio:.2%}", annotation_position="bottom right")
 
     fig.update_layout(dragmode='pan')
