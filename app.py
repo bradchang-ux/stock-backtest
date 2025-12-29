@@ -83,16 +83,21 @@ if submit_btn:
                 'Pullback Ratio': ratio
             })
         
-        # Filter out the current week (incomplete week) if caught
-        # If the last result's T-date is in the same week as today, remove it.
+        # Filter out the current week (incomplete week) using ISO calendar
+        # If the last result's T-date is in the same ISO week as today, remove it.
         if results:
-            last_result_date = results[-1]['Week Ending']
-            today = datetime.now().date()
-            # Start of current week (Monday)
-            current_week_start = today - timedelta(days=today.weekday())
+            last_t_date = results[-1]['Week Ending']
+            last_iso = last_t_date.isocalendar()[:2] # (year, week)
             
-            if last_result_date >= current_week_start:
+            today = datetime.now().date()
+            current_iso = today.isocalendar()[:2]
+            
+            # Additional check: If today is a weekend, we might have finished the week, but safe to exclude if strictly same week.
+            # Usually we want fully completed weeks. If today is Sunday, the trading week is done.
+            # But let's assume "incomplete" means "we are currently in it".
+            if last_iso == current_iso:
                 results.pop()
+
 
         # Store results in Session State
         st.session_state['results_df'] = pd.DataFrame(results)
