@@ -83,8 +83,9 @@ if submit_btn:
                 'Pullback Ratio': ratio
             })
         
-        # Filter out the current week (incomplete week) using ISO calendar
+        # Filter out the current week (incomplete week) using ISO calendar and weekday heuristic
         # If the last result's T-date is in the same ISO week as today, remove it.
+        # Also remove if it is Mon-Thu (weekday < 4) and very recent, as that implies incomplete.
         if results:
             last_t_date = results[-1]['Week Ending']
             last_iso = last_t_date.isocalendar()[:2] # (year, week)
@@ -92,11 +93,19 @@ if submit_btn:
             today = datetime.now().date()
             current_iso = today.isocalendar()[:2]
             
-            # Additional check: If today is a weekend, we might have finished the week, but safe to exclude if strictly same week.
-            # Usually we want fully completed weeks. If today is Sunday, the trading week is done.
-            # But let's assume "incomplete" means "we are currently in it".
-            if last_iso == current_iso:
+            is_same_week = last_iso == current_iso
+            is_recent = (today - last_t_date).days < 7
+            is_incomplete_day = last_t_date.weekday() < 4 # Mon(0) - Thu(3)
+            
+            if is_same_week or (is_recent and is_incomplete_day):
                 results.pop()
+            
+            # Debug info (Hidden by default, useful for troubleshooting deployment)
+            with st.expander("Debug Info (Data Freshness)"):
+                st.write(f"Server Date: {today}")
+                st.write(f"Last Week Ending Found: {last_t_date} ({last_t_date.strftime('%A')})")
+                st.write(f"Is Same ISO Week? {is_same_week}")
+                st.write(f"Is Recent & Incomplete? {is_recent} & {is_incomplete_day}")
 
 
         # Store results in Session State
