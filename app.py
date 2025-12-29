@@ -18,10 +18,18 @@ submit_btn = st.sidebar.button("Run Backtest")
 if submit_btn:
     with st.spinner(f"Fetching data for {symbol}..."):
         # 1. Fetch Data
-        df_daily = yf.download(symbol, start=start_date, progress=False, multi_level_index=False)
+        try:
+            # Force string format for date to avoid type issues on Streamlit Cloud
+            start_str = start_date.strftime("%Y-%m-%d") if hasattr(start_date, 'strftime') else str(start_date)
+            df_daily = yf.download(symbol, start=start_str, progress=False, multi_level_index=False)
+        except Exception as e:
+            st.error(f"API Error: {e}")
+            df_daily = pd.DataFrame()
     
     if df_daily.empty:
-        st.error("No data found for this symbol and date range.")
+        st.error(f"No data found for {symbol} from {start_date}.")
+        st.info(f"Debug: yfinance version {yf.__version__}")
+        st.info("This might be due to a temporary API block or invalid symbol.")
     else:
         # Ensure index is datetime
         df_daily.index = pd.to_datetime(df_daily.index)
@@ -111,8 +119,8 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     styled_df = display_df.style.format({
         'Close (C)': "{:.2f}",
         'Window Max (H)': "{:.2f}",
-        'Window Max Date': lambda t: t.strftime('%Y-%m-%d') if pd.notna(t) else "N/A",
-        'Window Start Date': lambda t: t.strftime('%Y-%m-%d') if pd.notna(t) else "N/A",
+        'Window Max Date': lambda t: t.strftime('%Y-%m-%d (%a)') if pd.notna(t) else "N/A",
+        'Window Start Date': lambda t: t.strftime('%Y-%m-%d (%a)') if pd.notna(t) else "N/A",
         'Pullback Ratio': "{:.2%}"
     })
     
