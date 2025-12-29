@@ -117,6 +117,7 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     
     # Format the dataframe
     styled_df = display_df.style.format({
+        'Week Ending': lambda t: t.strftime('%Y-%m-%d (%a)') if pd.notna(t) else "N/A",
         'Close (C)': "{:.2f}",
         'Window Max (H)': "{:.2f}",
         'Window Max Date': lambda t: t.strftime('%Y-%m-%d (%a)') if pd.notna(t) else "N/A",
