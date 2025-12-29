@@ -7,7 +7,7 @@ import plotly.express as px
 # Page configuration
 st.set_page_config(page_title="Stock Backtest App", layout="wide")
 
-st.title("Stock Pullback Backtest Tool (v2.0)")
+st.title("Stock Pullback Backtest Tool")
 
 # Sidebar inputs
 st.sidebar.header("Settings")
