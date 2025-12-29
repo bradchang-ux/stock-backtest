@@ -99,13 +99,6 @@ if submit_btn:
             
             if is_same_week or (is_recent and is_incomplete_day):
                 results.pop()
-            
-            # Debug info (Hidden by default, useful for troubleshooting deployment)
-            with st.expander("Debug Info (Data Freshness)"):
-                st.write(f"Server Date: {today}")
-                st.write(f"Last Week Ending Found: {last_t_date} ({last_t_date.strftime('%A')})")
-                st.write(f"Is Same ISO Week? {is_same_week}")
-                st.write(f"Is Recent & Incomplete? {is_recent} & {is_incomplete_day}")
 
 
         # Store results in Session State
