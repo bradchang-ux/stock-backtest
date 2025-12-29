@@ -117,6 +117,11 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     
     # Plotly Chart
     fig = px.line(results_df, x='Week Ending', y='Pullback Ratio', markers=True, title='Pullback Ratio Over Time')
+    
+    # Add Average Line
+    avg_ratio = results_df['Pullback Ratio'].mean()
+    fig.add_hline(y=avg_ratio, line_dash="dash", line_color="red", annotation_text=f"Avg: {avg_ratio:.2%}", annotation_position="bottom right")
+
     fig.update_layout(dragmode='pan')
 
     # Display chart with selection enabled
