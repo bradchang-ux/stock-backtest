@@ -82,7 +82,18 @@ if submit_btn:
                 'Window Start Date': window_start_date.date(),
                 'Pullback Ratio': ratio
             })
+        
+        # Filter out the current week (incomplete week) if caught
+        # If the last result's T-date is in the same week as today, remove it.
+        if results:
+            last_result_date = results[-1]['Week Ending']
+            today = datetime.now().date()
+            # Start of current week (Monday)
+            current_week_start = today - timedelta(days=today.weekday())
             
+            if last_result_date >= current_week_start:
+                results.pop()
+
         # Store results in Session State
         st.session_state['results_df'] = pd.DataFrame(results)
         st.session_state['symbol'] = symbol
