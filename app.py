@@ -13,6 +13,7 @@ st.title("Stock Pullback Backtest Tool")
 st.sidebar.header("Settings")
 symbol = st.sidebar.text_input("Stock Symbol", value="SPY").upper()
 start_date = st.sidebar.date_input("Start Date", value=datetime(2023, 1, 1))
+lookback_days = st.sidebar.number_input("Lookback Days", min_value=1, max_value=365, value=8, step=1)
 submit_btn = st.sidebar.button("Run Backtest")
 
 if submit_btn:
@@ -51,9 +52,9 @@ if submit_btn:
             c_price = t_row['Close']
             
             # 4. Calculate H (High)
-            # Window: [T-8, T-1] (Calendar Days)
+            # Window: [T-Lookback, T-1] (Calendar Days)
             window_end_date = t_date - timedelta(days=1)
-            window_start_date = t_date - timedelta(days=8)
+            window_start_date = t_date - timedelta(days=lookback_days)
             
             mask = (df_daily.index >= window_start_date) & (df_daily.index <= window_end_date)
             window_df = df_daily.loc[mask]
@@ -104,11 +105,13 @@ if submit_btn:
         # Store results in Session State
         st.session_state['results_df'] = pd.DataFrame(results)
         st.session_state['symbol'] = symbol
+        st.session_state['lookback_days'] = lookback_days
 
 # Display Logic (Check if results exist in Session State)
 if 'results_df' in st.session_state and not st.session_state['results_df'].empty:
     results_df = st.session_state['results_df']
     current_symbol = st.session_state.get('symbol', symbol)
+    current_lookback = st.session_state.get('lookback_days', 8)
     
     # Display metrics
     # Display metrics
@@ -117,7 +120,7 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     col1, col2 = st.columns(2)
     with col1:
         st.write(f"Ref Date (T): Last trading day of each week.")
-        st.write(f"Lookback Window: [T-8, T-1] (Calendar Days)")
+        st.write(f"Lookback Window: [T-{current_lookback}, T-1] (Calendar Days)")
     with col2:
         # Calculate Average
         avg_ratio = results_df['Pullback Ratio'].mean()
