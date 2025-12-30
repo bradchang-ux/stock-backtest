@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 from datetime import timedelta, datetime
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Page configuration
 st.set_page_config(page_title="Stock Backtest App", layout="wide")
@@ -104,16 +105,17 @@ if submit_btn:
 
         # Store results in Session State
         st.session_state['results_df'] = pd.DataFrame(results)
+        st.session_state['df_daily'] = df_daily # Store raw data for K-Line
         st.session_state['symbol'] = symbol
         st.session_state['lookback_days'] = lookback_days
 
 # Display Logic (Check if results exist in Session State)
 if 'results_df' in st.session_state and not st.session_state['results_df'].empty:
     results_df = st.session_state['results_df']
+    df_daily = st.session_state.get('df_daily', pd.DataFrame())
     current_symbol = st.session_state.get('symbol', symbol)
     current_lookback = st.session_state.get('lookback_days', 8)
     
-    # Display metrics
     # Display metrics
     st.subheader(f"Backtest Results for {current_symbol}")
     
@@ -128,17 +130,32 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
             avg_ratio = 0.0
         st.metric("Average Pullback Ratio", f"{avg_ratio:.2%}")
     
-    # Plotly Chart
-    fig = px.line(results_df, x='Week Ending', y='Pullback Ratio', markers=True, title='Pullback Ratio Over Time')
+    # --- Chart 1: Pullback Ratio ---
+    fig_ratio = px.line(results_df, x='Week Ending', y='Pullback Ratio', markers=True, title='Pullback Ratio Over Time')
+    fig_ratio.add_hline(y=avg_ratio, line_dash="dash", line_color="red", annotation_text=f"Avg: {avg_ratio:.2%}", annotation_position="bottom right")
+    fig_ratio.update_layout(dragmode='pan')
     
-    # Add Average Line
-    fig.add_hline(y=avg_ratio, line_dash="dash", line_color="red", annotation_text=f"Avg: {avg_ratio:.2%}", annotation_position="bottom right")
-
-    fig.update_layout(dragmode='pan')
-
     # Display chart with selection enabled
-    selection = st.plotly_chart(fig, on_select="rerun", use_container_width=True)
+    selection = st.plotly_chart(fig_ratio, on_select="rerun", use_container_width=True)
     
+    # --- Chart 2: Candlestick Price History ---
+    if not df_daily.empty:
+        st.subheader("Price History (K-Line)")
+        fig_candle = go.Figure(data=[go.Candlestick(x=df_daily.index,
+                        open=df_daily['Open'],
+                        high=df_daily['High'],
+                        low=df_daily['Low'],
+                        close=df_daily['Close'])])
+        
+        fig_candle.update_layout(
+            title=f'{current_symbol} Daily Price',
+            yaxis_title='Price',
+            xaxis_rangeslider_visible=False, # Hide range slider to save space
+            dragmode='pan',
+            height=500
+        )
+        st.plotly_chart(fig_candle, use_container_width=True)
+
     # Handle Selection
     selected_indices = []
     if selection and "selection" in selection and "points" in selection["selection"]:
