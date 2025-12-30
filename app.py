@@ -138,19 +138,30 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     # Display chart with selection enabled
     selection = st.plotly_chart(fig_ratio, on_select="rerun", use_container_width=True)
     
-    # --- Chart 2: Candlestick Price History ---
+    # --- Chart 2: Candlestick Price History (Weekly) ---
     if not df_daily.empty:
-        st.subheader("Price History (K-Line)")
-        fig_candle = go.Figure(data=[go.Candlestick(x=df_daily.index,
-                        open=df_daily['Open'],
-                        high=df_daily['High'],
-                        low=df_daily['Low'],
-                        close=df_daily['Close'])])
+        st.subheader("Price History (Weekly K-Line)")
+        
+        # Resample to Weekly
+        df_weekly_ohlc = df_daily.resample('W').agg({
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last'
+        })
+        # Remove any empty bins
+        df_weekly_ohlc = df_weekly_ohlc.dropna()
+
+        fig_candle = go.Figure(data=[go.Candlestick(x=df_weekly_ohlc.index,
+                        open=df_weekly_ohlc['Open'],
+                        high=df_weekly_ohlc['High'],
+                        low=df_weekly_ohlc['Low'],
+                        close=df_weekly_ohlc['Close'])])
         
         fig_candle.update_layout(
-            title=f'{current_symbol} Daily Price',
+            title=f'{current_symbol} Weekly Price',
             yaxis_title='Price',
-            xaxis_rangeslider_visible=False, # Hide range slider to save space
+            xaxis_rangeslider_visible=False,
             dragmode='pan',
             height=500
         )
