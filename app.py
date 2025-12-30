@@ -138,101 +138,34 @@ if 'results_df' in st.session_state and not st.session_state['results_df'].empty
     # Display chart with selection enabled
     selection = st.plotly_chart(fig_ratio, on_select="rerun", use_container_width=True)
     
-    # --- Chart 2: Candlestick Price History (Weekly) using mplfinance with VRVP ---
+    # --- Chart 2: Candlestick Price History (Weekly) ---
     if not df_daily.empty:
-        st.subheader("Price History (Weekly K-Line with VRVP)")
+        st.subheader("Price History (Weekly K-Line)")
         
-        # Resample to Weekly with Volume
-        df_weekly_ohlcv = df_daily.resample('W').agg({
+        # Resample to Weekly
+        df_weekly_ohlc = df_daily.resample('W').agg({
             'Open': 'first',
             'High': 'max',
             'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
+            'Close': 'last'
         })
         # Remove any empty bins
-        df_weekly_ohlcv = df_weekly_ohlcv.dropna()
+        df_weekly_ohlc = df_weekly_ohlc.dropna()
 
-        # Create plot
-        import mplfinance as mpf
-        from matplotlib import pyplot as plt
-        import numpy as np
-
-        # 1. Calculate Volume Profile
-        # Use 50 bins or dynamic
-        price_data = df_weekly_ohlcv['Close']
-        volume_data = df_weekly_ohlcv['Volume']
+        fig_candle = go.Figure(data=[go.Candlestick(x=df_weekly_ohlc.index,
+                        open=df_weekly_ohlc['Open'],
+                        high=df_weekly_ohlc['High'],
+                        low=df_weekly_ohlc['Low'],
+                        close=df_weekly_ohlc['Close'])])
         
-        # Define bins
-        price_min = price_data.min()
-        price_max = price_data.max()
-        bins = np.linspace(price_min, price_max, 50)
-        
-        # Digitise prices to find which bin they belong to
-        indices = np.digitize(price_data, bins)
-        
-        # Sum volume per bin
-        # We need to map indices (1-50) to volume
-        # Careful with indices returning 0 or len(bins) for out of bounds
-        
-        vp_volumes = np.zeros(len(bins)-1)
-        for i in range(len(price_data)):
-            bin_idx = indices[i] - 1 # indices are 1-based, convert to 0-based
-            if 0 <= bin_idx < len(vp_volumes):
-                vp_volumes[bin_idx] += volume_data.iloc[i]
-        
-        # 2. Setup mplfinance plot
-        # We use returnfig=True to get access to axes
-        fig, axlist = mpf.plot(df_weekly_ohlcv, type='candle', style='yahoo', volume=True, 
-                               returnfig=True, title=f'{current_symbol} Weekly',
-                               figsize=(10, 6), panel_ratios=(4,1))
-        
-        # Axlist: 0=Main, 1=Secondary(unused usually), 2=Volume (if volume=True)
-        # It depends on panels. Usually axlist[0] is main, axlist[2] is volume.
-        # Let's verify standard mpf axes: [Main, Volume]
-        
-        ax_main = axlist[0]
-        
-        # 3. Plot VRVP on a Twin Axis (Overlay)
-        ax_vp = ax_main.twiny()
-        
-        # Horizontal Bar Chart
-        # y = bins (price levels), width = volume
-        # We use the mid-point of bins for plotting
-        bin_mids = (bins[:-1] + bins[1:]) / 2
-        
-        # Plot bars
-        # Color: Blue with Alpha
-        ax_vp.barh(bin_mids, vp_volumes, height=(bins[1]-bins[0])*0.8, alpha=0.3, color='blue', align='center')
-        
-        # Move VRVP to the right side (invert x axis typically puts 0 on right, but we want bars growing from right to left? 
-        # Or standard growing from left (0) to right?
-        # User said "Right side".
-        # If we plot normally, bars grow from Left (0) to Right.
-        # To make them look like they are "on the right side", we can:
-        # A) Invert X axis? -> Bars grow from Right to Left. 
-        # B) Set X limits so bars only occupy the right-most portion?
-        
-        # Let's try Inverting Axis so they stick to the right spine?
-        # If we invert, 0 starts at Right.
-        # But normal barh plots 0..Max. 
-        # Actually, usually VRVP overlay is printed 'behind' candles. 
-        # If we want it "Right Aligned", typically people mean the histogram bars originate from the right Y-axis and grow leftwards.
-        # Matplotlib doesn't have a simple "barh from right" without math.
-        # Easier: Just standard barh (Left -> Right) but assume "Right Side" means the overlay is visible on the chart.
-        # If user strictly wants "Side Profile" anchored to Right axis:
-        # We can use set_xlim(reversed).
-        
-        ax_vp.set_xlim(right=max(vp_volumes)*4) # Scale so bars only take up ~1/4 of width
-        # Switch direction? defaults to Left->Right.
-        # Let's leave it Left->Right for now (Standard Volume Profile often on Left or Right).
-        # To strictly do "Right Side", we might need to invert, let's keep it simple first.
-        # Actually, let's allow them to overlay fully but be transparent.
-        
-        ax_vp.axis('off') # Hide the VP axis labels/ticks/spines to simplify view
-        
-        # Render in Streamlit
-        st.pyplot(fig)
+        fig_candle.update_layout(
+            title=f'{current_symbol} Weekly Price',
+            yaxis_title='Price',
+            xaxis_rangeslider_visible=False,
+            dragmode='pan',
+            height=500
+        )
+        st.plotly_chart(fig_candle, use_container_width=True)
 
     # Handle Selection
     selected_indices = []
